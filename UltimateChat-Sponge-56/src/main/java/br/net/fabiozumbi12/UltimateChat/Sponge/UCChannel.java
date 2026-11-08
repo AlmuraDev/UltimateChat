@@ -160,7 +160,7 @@ public class UCChannel {
     }
 
     public boolean AllowBot() {
-        return (boolean) properties.get("allow-bot");
+        return (boolean) properties.get("discord.allow-bot");
     }
 
     public String getPassword() {
