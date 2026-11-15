@@ -52,6 +52,7 @@ import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GamePostInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
+import org.spongepowered.api.event.game.state.GameStartingServerEvent;
 import org.spongepowered.api.event.game.state.GameStoppedServerEvent;
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
@@ -81,6 +82,8 @@ import java.util.*;
 public class UChat {
 
     private static UChat uchat;
+    // Whether the one-time setup (commands, listeners, API) has run; it runs when the first server starts
+    private boolean started;
     @Inject
     public GuiceObjectMapperFactory factory;
     public Map<String, String> tempChannels = Collections.synchronizedMap(new HashMap<>());
@@ -189,11 +192,24 @@ public class UChat {
 
     @Listener
     public void onServerStart(GamePostInitializationEvent event) {
-        try {
-            uchat = this;
-            this.serv = Sponge.getServer();
+        // Only what doesn't need the server here: on a client (single player) the integrated server doesn't exist until a world is
+        // opened, so Sponge.getServer() would throw. The rest is set up in onServerStarting.
+        uchat = this;
+    }
 
+    @Listener
+    public void onServerStarting(GameStartingServerEvent event) {
+        try {
+            this.serv = Sponge.getServer();
             this.logger = new UCLogger(this.serv);
+
+            if (this.started) {
+                // Single player starts a new integrated server for each world opened: the commands and listeners are already registered,
+                // so just load the config again and restart Jedis and Discord (shut down when the last server stopped)
+                reload();
+                return;
+            }
+
             this.config = new UCConfig(this.factory);
             this.lang = new UCLang();
 
@@ -229,6 +245,8 @@ public class UChat {
                     + "  \\____/|_|\\__|_|_| |_| |_|\\__,_|\\__\\___|\\_____|_| |_|\\__,_|\\__|\n"
                     + "                                                                \n"
                     + "&a" + plugin.getName() + " " + plugin.getVersion().get() + " enabled!\n");
+
+            this.started = true;
 
         } catch (Exception e) {
             e.printStackTrace();
