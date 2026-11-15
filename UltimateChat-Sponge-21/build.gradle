@@ -1,0 +1,91 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version "${shadow_version}"
+}
+
+base {
+    archivesName = 'UltimateChat'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Sponge'
+        url = uri('https://repo.spongepowered.org/repository/maven-public/')
+        content {
+            includeGroup('org.spongepowered')
+        }
+    }
+}
+
+dependencies {
+    // SpongeNeo brings SpongeAPI (with Adventure, Configurate, Guice, Gson and Log4j) at run time
+    compileOnly("org.spongepowered:spongeapi:${sponge_api_version}")
+
+    // Discord relay. Voice (opus) and its encryption (tink) are never used, so they stay out of the jar.
+    implementation("net.dv8tion:JDA:${jda_version}") {
+        exclude module: 'opus-java'
+        exclude module: 'tink'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = java_version as int
+}
+
+def pluginProps = [
+        'version'           : project.version,
+        'sponge_api_version': sponge_api_version.replace('-SNAPSHOT', '')
+]
+
+processResources {
+    inputs.properties(pluginProps)
+    filesMatching('META-INF/sponge_plugins.json') {
+        expand(pluginProps)
+    }
+}
+
+def relocated = 'br.net.fabiozumbi12.UltimateChat.Sponge.libs'
+
+shadowJar {
+    archiveClassifier = ''
+    // NeoForge already provides SLF4J (routed to Log4j), so JDA logs into the server log through it
+    dependencies {
+        exclude(dependency('org.slf4j:.*'))
+    }
+    relocate 'net.dv8tion', "${relocated}.jda"
+    relocate 'com.neovisionaries', "${relocated}.neovisionaries"
+    relocate 'okhttp3', "${relocated}.okhttp3"
+    relocate 'okio', "${relocated}.okio"
+    relocate 'kotlin', "${relocated}.kotlin"
+    relocate 'com.fasterxml', "${relocated}.fasterxml"
+    relocate 'org.apache.commons.collections4', "${relocated}.collections4"
+    relocate 'gnu.trove', "${relocated}.trove"
+    relocate 'org.jetbrains', "${relocated}.jetbrains"
+    relocate 'org.intellij', "${relocated}.intellij"
+    exclude 'META-INF/versions/*/module-info.class'
+    exclude 'module-info.class'
+    exclude 'META-INF/maven/**'
+    exclude 'META-INF/*.kotlin_module'
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    manifest {
+        attributes(
+                'Specification-Title': 'UltimateChat',
+                'Implementation-Title': 'UltimateChat',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Only the shaded jar is the plugin
+jar {
+    enabled = false
+}
+
+assemble.dependsOn shadowJar

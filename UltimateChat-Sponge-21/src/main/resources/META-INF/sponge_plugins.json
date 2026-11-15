@@ -1,0 +1,37 @@
+{
+    "loader": {
+        "name": "java_plain",
+        "version": "1.0"
+    },
+    "license": "Zlib",
+    "global": {
+        "version": "${version}",
+        "links": {
+            "homepage": "https://github.com/AlmuraDev/UltimateChat",
+            "source": "https://github.com/AlmuraDev/UltimateChat",
+            "issues": "https://github.com/AlmuraDev/UltimateChat/issues"
+        },
+        "contributors": [
+            {
+                "name": "FabioZumbi12",
+                "description": "Author"
+            }
+        ],
+        "dependencies": [
+            {
+                "id": "spongeapi",
+                "version": "${sponge_api_version}",
+                "load-order": "AFTER",
+                "optional": false
+            }
+        ]
+    },
+    "plugins": [
+        {
+            "id": "ultimatechat",
+            "name": "UltimateChat",
+            "entrypoint": "br.net.fabiozumbi12.UltimateChat.Sponge.UChat",
+            "description": "Complete and advanced chat plugin"
+        }
+    ]
+}
